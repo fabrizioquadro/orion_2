@@ -18,6 +18,7 @@ class ApiZapSignController extends Controller
 
     public static function create_doc($investimento){
         try {
+            /*
             $user = User::where('id', $investimento->user_id)->first();
             $investidor = Investidor::where('user_id', $investimento->user_id)->first();
 
@@ -138,11 +139,18 @@ class ApiZapSignController extends Controller
             else{
                 return false;
             }
+            */
+
+            $investimento->assinatura_contrato_investimento = 'Sim';
+            $investimento->save();
+            return true;
 
         } catch (\Exception $e) {
-            dd($e->getMessage());
+            //dd($e->getMessage());
+            return false;
         }
     }
+
 
     public static function verifica_assinatura($investimento){
         try {
