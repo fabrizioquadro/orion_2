@@ -9,6 +9,7 @@ use App\Http\Controllers\ConfiguracaoController;
 use App\Http\Controllers\InvestimentoAdmController;
 use App\Http\Controllers\TransacaoAdmController;
 use App\Http\Controllers\DashboardInvestidorController;
+use App\Http\Controllers\DashboardInvestidorV2Controller;
 use App\Http\Controllers\InvestimentoInvestidorController;
 use App\Http\Controllers\TransacaoInvestidorController;
 use App\Http\Controllers\CotaController;
@@ -124,7 +125,8 @@ Route::middleware(['auth'])->group(function () {
     });
 
     Route::prefix('investidor')->group(function(){
-        Route::get('/dashboard', [DashboardInvestidorController::class, 'index'])->name('investidor.dashboard');
+        Route::get('/dashboard', [DashboardInvestidorV2Controller::class, 'index'])->name('investidor.dashboard');
+        Route::get('/dashboard_old', [DashboardInvestidorController::class, 'index'])->name('investidor.dashboard_old');
 
         Route::get('/investimentos', [InvestimentoInvestidorController::class, 'index'])->name('investidor.investimentos');
         Route::get('/investimentos/adicionar', [InvestimentoInvestidorController::class, 'adicionar'])->name('investidor.investimentos.adicionar');
