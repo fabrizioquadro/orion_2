@@ -20,6 +20,6 @@ class CotaInvestimento extends Model
     }
 
     public function cota(){
-        return $this->belongsTo(Investimento::class);
+        return $this->belongsTo(Cota::class);
     }
 }

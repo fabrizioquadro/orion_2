@@ -70,18 +70,6 @@
     <!-- Header -->
     <div class="d-flex align-items-center justify-content-between mb-4">
         <h3 class="mb-0">Dashboard</h3>
-        <div class="d-flex gap-2">
-            <select class="form-select form-select-sm w-auto">
-                <option>Todas</option>
-                <option>Ativas</option>
-                <option>Finalizadas</option>
-            </select>
-            <select class="form-select form-select-sm w-auto">
-                <option>30 dias</option>
-                <option>90 dias</option>
-                <option>1 ano</option>
-            </select>
-        </div>
     </div>
 
     <!-- Top Cards -->
@@ -157,11 +145,11 @@
                         </div>
                         <div>
                             <p class="mb-0 text-muted small">Próximo Vencimento</p>
-                            <h4 class="mb-0">{{ $proxima_cota ? 'Cota ' . $proxima_cota['codigo'] : '---' }}</h4>
+                            <h4 class="mb-0">{{ $proxima_cota ? $proxima_cota['titulo'] : '---' }}</h4>
                         </div>
                     </div>
                     <div class="d-flex align-items-center text-muted small">
-                        {{ $proxima_cota ? $proxima_cota['dias_restantes'] . ' dias' : '---' }}
+                        {{ $proxima_cota ? $proxima_cota['dt_retorno'] . ' (' . $proxima_cota['dias_restantes'] . ' dias)' : '---' }}
                     </div>
                 </div>
             </div>

@@ -8,6 +8,7 @@ use App\Models\Cota;
 use App\Models\CotaInvestimento;
 use App\Models\Investidor;
 use App\Models\User;
+use App\Models\Resgate;
 use Illuminate\Support\Facades\DB;
 
 class DashboardInvestidorV2Controller extends Controller
@@ -20,9 +21,11 @@ class DashboardInvestidorV2Controller extends Controller
         $user = auth()->user();
         $investidor = Investidor::where('user_id', $user->id)->first();
 
-        // Buscar todos os aportes do investidor em cotas
+        // Buscar todos os aportes do investidor em cotas que estejam abertas
         $meus_aportes = CotaInvestimento::whereHas('investimento', function ($query) use ($user) {
             $query->where('user_id', $user->id)->where('investimento_cofirmado', 'Sim');
+        })->whereHas('cota', function ($query) {
+            $query->where('situacao', 'Aberta');
         })->with(['cota', 'investimento'])->get();
 
         $dados_cotas = [];
@@ -89,10 +92,38 @@ class DashboardInvestidorV2Controller extends Controller
             ];
         }
 
-        $patrimonio_total = $total_capital_investido + $total_lucro;
+        $patrimonio_total = $this->getSaldoTransacoes($user->id);
+        $total_lucro = Investimento::where('user_id', $user->id)
+            ->where('investimento_cofirmado', 'Sim')
+            ->sum('vl_retorno_ganho');
+        $total_capital_investido = Investimento::where('user_id', $user->id)
+            ->where('investimento_cofirmado', 'Sim')
+            ->where(function ($query) {
+                $query->where('reinvestimento', '!=', 'Sim')
+                      ->orWhereNull('reinvestimento');
+            })
+            ->sum('vl_investimento');
         $porcentagem_lucro_total = $total_capital_investido > 0 ? round(($total_lucro * 100) / $total_capital_investido, 2) : 0;
         
-        $proxima_cota = collect($dados_cotas)->where('situacao', 'Aberta')->sortBy('dt_venda')->first();
+        $invest_proximo = Investimento::where('user_id', $user->id)
+            ->where('investimento_cofirmado', 'Sim')
+            ->where('st_investimento', '!=', 'Finalizado')
+            ->orderBy('dt_retorno')
+            ->first();
+
+        $proxima_cota = null;
+        if ($invest_proximo) {
+            $hoje = strtotime(date('Y-m-d'));
+            $dt_retorno = strtotime($invest_proximo->dt_retorno);
+            $dias_restantes = ($dt_retorno - $hoje) / 86400;
+
+            $proxima_cota = [
+                'titulo' => $invest_proximo->titulo,
+                'codigo' => $invest_proximo->titulo,
+                'dias_restantes' => max(0, round($dias_restantes)),
+                'dt_retorno' => dataDbForm($invest_proximo->dt_retorno)
+            ];
+        }
         
         $rentabilidade_media = count($rentabilidades) > 0 ? round(array_sum($rentabilidades) / count($rentabilidades), 2) : 0;
         $prazo_medio_restante = count($prazos_restantes) > 0 ? round(array_sum($prazos_restantes) / count($prazos_restantes)) : 0;
@@ -116,28 +147,140 @@ class DashboardInvestidorV2Controller extends Controller
 
     private function getDadosGrafico($user_id)
     {
-        // Esta é uma implementação simplificada para gerar o gráfico. 
-        // Em um sistema real, poderíamos ter uma tabela de histórico de patrimônio.
         $meses = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
         $labels = [];
         $valores = [];
-        
-        for ($i = 5; $i >= 0; $i--) {
+
+        // 1. Obter todas as transações do investidor de forma similar ao getSaldoTransacoes
+        $array_transacoes = [];
+
+        // Buscar todos os investimentos confirmados do investidor
+        $investimentos = Investimento::where('user_id', $user_id)
+            ->where('investimento_cofirmado', 'Sim')
+            ->get();
+
+        foreach ($investimentos as $investimento) {
+            if ($investimento->vl_investimento > 0) {
+                $array_transacoes[] = [
+                    'date' => $investimento->dt_investimento,
+                    'timestamp' => strtotime($investimento->dt_investimento),
+                    'tipo' => $investimento->reinvestimento == 'Sim' ? 'Reinvestimento' : 'Entrada',
+                    'valor' => $investimento->vl_investimento
+                ];
+            }
+
+            if ($investimento->st_investimento == 'Finalizado') {
+                $array_transacoes[] = [
+                    'date' => $investimento->dt_retorno,
+                    'timestamp' => strtotime($investimento->dt_retorno),
+                    'tipo' => 'Entrada',
+                    'valor' => $investimento->vl_retorno_ganho
+                ];
+            }
+        }
+
+        // Buscar resgates confirmados
+        $resgates = Resgate::where('user_id', $user_id)
+            ->where('resgate_confirmado', 'Sim')
+            ->get();
+
+        foreach ($resgates as $resgate) {
+            $array_transacoes[] = [
+                'date' => $resgate->dt_resgate,
+                'timestamp' => strtotime($resgate->dt_resgate),
+                'tipo' => 'Saída',
+                'valor' => $resgate->vl_resgate
+            ];
+        }
+
+        // Ordenar transações por data (timestamp)
+        usort($array_transacoes, function ($item1, $item2) {
+            return $item1['timestamp'] <=> $item2['timestamp'];
+        });
+
+        // 2. Calcular o saldo acumulado ao final de cada um dos últimos 12 meses (último ano)
+        for ($i = 11; $i >= 0; $i--) {
             $mes_ref = date('Y-m', strtotime("-$i months"));
             $labels[] = $meses[intval(date('m', strtotime($mes_ref))) - 1];
             
-            // Soma o capital investido até aquele mês (simplificado)
-            $soma = Investimento::where('user_id', $user_id)
-                ->where('investimento_cofirmado', 'Sim')
-                ->where('dt_investimento', '<=', date('Y-m-t', strtotime($mes_ref)))
-                ->sum('vl_investimento');
+            $limite_data = date('Y-m-t', strtotime($mes_ref)); // Último dia do mês
+
+            $saldo = 0;
+            foreach ($array_transacoes as $linha) {
+                // Apenas processa se a transação ocorreu até o limite de data do mês de referência
+                if ($linha['date'] <= $limite_data) {
+                    if ($linha['tipo'] == 'Entrada') {
+                        $saldo += $linha['valor'];
+                    } elseif ($linha['tipo'] == 'Saída') {
+                        $saldo -= $linha['valor'];
+                    }
+                }
+            }
             
-            $valores[] = $soma;
+            $valores[] = $saldo;
         }
 
         return [
             'labels' => $labels,
             'valores' => $valores
         ];
+    }
+
+    private function getSaldoTransacoes($user_id)
+    {
+        $array_transacoes = [];
+
+        // Buscar todos os investimentos confirmados do investidor
+        $investimentos = Investimento::where('user_id', $user_id)
+            ->where('investimento_cofirmado', 'Sim')
+            ->get();
+
+        foreach ($investimentos as $investimento) {
+            if ($investimento->vl_investimento > 0) {
+                $array_transacoes[] = [
+                    'timestamp' => strtotime($investimento->dt_investimento),
+                    'tipo' => $investimento->reinvestimento == 'Sim' ? 'Reinvestimento' : 'Entrada',
+                    'valor' => $investimento->vl_investimento
+                ];
+            }
+
+            if ($investimento->st_investimento == 'Finalizado') {
+                $array_transacoes[] = [
+                    'timestamp' => strtotime($investimento->dt_retorno),
+                    'tipo' => 'Entrada',
+                    'valor' => $investimento->vl_retorno_ganho
+                ];
+            }
+        }
+
+        // Buscar resgates confirmados
+        $resgates = Resgate::where('user_id', $user_id)
+            ->where('resgate_confirmado', 'Sim')
+            ->get();
+
+        foreach ($resgates as $resgate) {
+            $array_transacoes[] = [
+                'timestamp' => strtotime($resgate->dt_resgate),
+                'tipo' => 'Saída',
+                'valor' => $resgate->vl_resgate
+            ];
+        }
+
+        // Ordenar transações por data (timestamp)
+        usort($array_transacoes, function ($item1, $item2) {
+            return $item1['timestamp'] <=> $item2['timestamp'];
+        });
+
+        // Calcular o saldo final
+        $saldo = 0;
+        foreach ($array_transacoes as $linha) {
+            if ($linha['tipo'] == 'Entrada') {
+                $saldo += $linha['valor'];
+            } elseif ($linha['tipo'] == 'Saída') {
+                $saldo -= $linha['valor'];
+            }
+        }
+
+        return $saldo;
     }
 }
