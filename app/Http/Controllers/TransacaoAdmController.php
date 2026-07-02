@@ -98,8 +98,10 @@ class TransacaoAdmController extends Controller
 
             $saldo = 0;
 
+            $users = User::whereIn('tipo', ['Investidor','Promotor'])->where('id', '!=', $user->id)->orderBy('nome')->get();
+
             return view('adm/transacoes/gerar', compact('array_transacoes','user','valor_disponivel',
-            'total_aportes','total_resgates','saldo'));
+            'total_aportes','total_resgates','saldo', 'users'));
         } catch (\Exception $e) {
             return redirect()->route('adm.transacoes')->with('mensagem_erro', $e->getMessage());
         }
@@ -157,6 +159,72 @@ class TransacaoAdmController extends Controller
 
             return $this->gerar($request);
         } catch (\Exception $e) {
+            return redirect()->route('adm.transacoes')->with('mensagem_erro', $e->getMessage());
+        }
+    }
+
+    public function transferir(Request $request){
+        DB::beginTransaction();
+        try {
+            $user_origem = User::where('id', $request->user_id)->first();
+            $user_destino = User::where('id', $request->user_id_destino)->first();
+            $config = Configuracao::where('id', '1')->first();
+            $vl_transferencia = valorFormDb($request->vl_transferencia);
+
+            // 1. Criar Saída (Resgate) para a Origem
+            $dados_resgate = [
+                'user_id' => $user_origem->id,
+                'titulo' => 'Transferência para ' . $user_destino->nome,
+                'dt_resgate' => $request->dt_transferencia,
+                'vl_resgate' => $vl_transferencia,
+                'resgate_confirmado' => 'Sim',
+            ];
+            Resgate::create($dados_resgate);
+
+            // 2. Criar Entrada (Investimento) para o Destino
+            if($request->indice_rendimento){
+                if(strpos($request->indice_rendimento, ',')){
+                    $porcentagem_ganho = sub_replace(',','.',$request->indice_rendimento);
+                }
+                else{
+                    $porcentagem_ganho = $request->indice_rendimento;
+                }
+            }
+            else{
+                if($vl_transferencia <= 50000){
+                    $porcentagem_ganho = $config->ate_ciquenta;
+                }
+                elseif($vl_transferencia <= 100000){
+                    $porcentagem_ganho = $config->ate_cem;
+                }
+                else{
+                    $porcentagem_ganho = $config->acima_cem;
+                }
+            }
+
+            $vl_retorno_ganho = round($vl_transferencia * $porcentagem_ganho / 100, 2);
+            $dt_retorno = date('Y-m-d', strtotime("+$config->tempo_investimento days", strtotime($request->dt_transferencia)));
+
+            $dados_investimento = [
+                'user_id' => $user_destino->id,
+                'titulo' => 'Transferência de ' . $user_origem->nome,
+                'dt_investimento' => $request->dt_transferencia,
+                'vl_investimento' => $vl_transferencia,
+                'dt_retorno' => $dt_retorno,
+                'vl_retorno_ganho' => $vl_retorno_ganho,
+                'st_investimento' => 'Ativo',
+                'reinvestimento' => 'Não',
+                'investimento_cofirmado' => 'Sim',
+                'vl_cota_investido' => '0.00',
+                'vl_cota_restante' => $vl_transferencia,
+                'indice_rendimento' => $porcentagem_ganho,
+            ];
+            Investimento::create($dados_investimento);
+
+            DB::commit();
+            return $this->gerar($request);
+        } catch (\Exception $e) {
+            DB::rollBack();
             return redirect()->route('adm.transacoes')->with('mensagem_erro', $e->getMessage());
         }
     }

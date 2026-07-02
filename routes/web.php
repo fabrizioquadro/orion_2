@@ -93,6 +93,7 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/transacoes', [TransacaoAdmController::class, 'index'])->name('adm.transacoes');
             Route::post('/transacoes/gerar', [TransacaoAdmController::class, 'gerar'])->name('adm.transacoes.gerar');
             Route::post('/transacoes/reinvestir', [TransacaoAdmController::class, 'reinvestir'])->name('adm.transacoes.reinvestir');
+            Route::post('/transacoes/transferir', [TransacaoAdmController::class, 'transferir'])->name('adm.transacoes.transferir');
             Route::post('/transacoes/resgatar', [TransacaoAdmController::class, 'resgatar'])->name('adm.transacoes.resgatar');
             Route::post('/transacoes/resgatar/update', [TransacaoAdmController::class, 'resgatar_update'])->name('adm.transacoes.resgatar.update');
             Route::post('/transacoes/resgatar/delete', [TransacaoAdmController::class, 'resgatar_delete'])->name('adm.transacoes.resgatar.delete');

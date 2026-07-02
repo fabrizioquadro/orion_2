@@ -12,6 +12,7 @@
                 @if($valor_disponivel > 0)
                     <button type="button" id="botao_reinvestir" class="btn btn-sm btn-primary">Reinvestir</button>
                     <button type="button" id="botao_resgate" class="btn btn-sm btn-danger">Resgatar</button>
+                    <button type="button" id="botao_transferencia" class="btn btn-sm btn-warning">Transferir</button>
                 @endif
             </div>
         </div>
@@ -204,6 +205,55 @@
     </div>
 </div>
 
+<div class="modal fade" id="modal_transferir" data-bs-backdrop="static" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <form id='form_transferir' action="{{ route('adm.transacoes.transferir') }}" class="modal-content" method="post">
+            @csrf
+            <input type="hidden" name="user_id" value="{{ $user->id }}">
+            <div class="modal-header">
+                <h5 class="modal-title" id="backDropModalTitle">Transferir Saldo</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row gy-4 mt-2">
+                    <div class="col-md-12">
+                        <div class="form-floating form-floating-outline">
+                            <select required class="form-select select2" id="user_id_destino" name="user_id_destino">
+                                <option value="">Selecione o Destinatário</option>
+                                @foreach($users as $usuario_destino)
+                                    <option value="{{ $usuario_destino->id }}">{{ $usuario_destino->nome }}</option>
+                                @endforeach
+                            </select>
+                            <label for="user_id_destino">Investidor Destino:</label>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-floating form-floating-outline">
+                            <input required class="form-control" type="date" id="dt_transferencia" name="dt_transferencia"/>
+                            <label for="dt_transferencia">Data Transferência:</label>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-floating form-floating-outline">
+                            <input required class="form-control" type="text" id="vl_transferencia" name="vl_transferencia" onkeypress="return(MascaraMoeda(this,'.',',',event))"/>
+                            <label for="vl_transferencia">Valor Transferência:</label>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-floating form-floating-outline">
+                            <input class="form-control" type="text" id="indice_rendimento_transferencia" name="indice_rendimento"/>
+                            <label for="indice_rendimento_transferencia">Indice Rendimento (Opcional):</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="mb-3 mt-3">
+                    <button class="btn btn-warning" type="button" id="botao_cadastrar_transferir">Salvar</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
 <div class="modal fade" id="modal_editar_resgate" data-bs-backdrop="static" tabindex="-1">
     <div class="modal-dialog">
         <form id="form_resgatar_update" action="{{ route('adm.transacoes.resgatar.update') }}" class="modal-content" method="post">
@@ -248,6 +298,7 @@
 <script type="text/javascript">
 var modalReinvestir;
 var modalResgatar;
+var modalTransferir;
 var modalEditarResgate;
 
 document.getElementById('botao_reinvestir').addEventListener('click', ()=>{
@@ -258,6 +309,11 @@ document.getElementById('botao_reinvestir').addEventListener('click', ()=>{
 document.getElementById('botao_resgate').addEventListener('click', ()=>{
     modalResgatar = new bootstrap.Modal(document.getElementById('modal_resgatar'));
     modalResgatar.show();
+})
+
+document.getElementById('botao_transferencia').addEventListener('click', ()=>{
+    modalTransferir = new bootstrap.Modal(document.getElementById('modal_transferir'));
+    modalTransferir.show();
 })
 
 function editar_resgate(id){
@@ -317,6 +373,27 @@ document.getElementById('botao_cadastrar_resgate').addEventListener('click', ()=
     }
     else{
         alert('É necessario preencher todos os campos');
+    }
+})
+
+document.getElementById('botao_cadastrar_transferir').addEventListener('click', ()=>{
+    destino = document.getElementById('user_id_destino').value;
+    data = document.getElementById('dt_transferencia').value;
+    valor = document.getElementById('vl_transferencia').value;
+
+    if(destino && data && valor){
+        valor_disponivel = parseFloat({{ $valor_disponivel }});
+        valor = valor.replace('.','');
+        valor = parseFloat(valor.replace(',','.'));
+        if(valor > valor_disponivel){
+            alert('Valor informado maior que o disponível');
+        }
+        else{
+            document.getElementById('form_transferir').submit();
+        }
+    }
+    else{
+        alert('É necessario preencher Investidor Destino, Data e Valor');
     }
 })
 
