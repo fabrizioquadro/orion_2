@@ -42,7 +42,7 @@ class CotaController extends Controller
             $comissao_orion = 0;
             $aplica_comissao_orion = $request->aplica_comissao_orion ? $request->aplica_comissao_orion : 'Não';
             if ($aplica_comissao_orion == 'Sim') {
-                $comissao_orion = round($lucro_bruto * 0.10, 2);
+                $comissao_orion = round($lucro_ratiado * 0.10, 2);
             }
             $lucro_liquido = round($lucro_ratiado - $comissao - $comissao_orion, 2);
 
@@ -387,7 +387,7 @@ class CotaController extends Controller
             
             $cota->comissao_orion = 0;
             if ($cota->aplica_comissao_orion == 'Sim') {
-                $cota->comissao_orion = round($cota->lucro_bruto * 0.10, 2);
+                $cota->comissao_orion = round($cota->lucro_ratiado * 0.10, 2);
             }
             $cota->lucro_liquido = round($cota->lucro_ratiado - $cota->comissao - $cota->comissao_orion, 2);
             $cota->dias_venda = (strtotime($cota->dt_venda) - strtotime($cota->dt_compra)) / 86400;
@@ -552,7 +552,7 @@ class CotaController extends Controller
             $comissao_orion = 0;
             $aplica_comissao_orion = $request->aplica_comissao_orion ? $request->aplica_comissao_orion : 'Não';
             if ($aplica_comissao_orion == 'Sim') {
-                $comissao_orion = round($lucro_bruto * 0.10, 2);
+                $comissao_orion = round($lucro_ratiado * 0.10, 2);
             }
             $lucro_liquido = round($lucro_ratiado - $comissao - $comissao_orion, 2);
 
