@@ -38,7 +38,13 @@ class CotaController extends Controller
             $lucro_bruto = valorFormDb($request->vl_venda) - valorFormDb($request->vl_compra);
             $lucro_ratiado = round($lucro_bruto / 2, 2);
             $comissao = 2 * round($lucro_ratiado / 100, 2);
-            $lucro_liquido = round($lucro_ratiado - $comissao, 2);
+
+            $comissao_orion = 0;
+            $aplica_comissao_orion = $request->aplica_comissao_orion ? $request->aplica_comissao_orion : 'Não';
+            if ($aplica_comissao_orion == 'Sim') {
+                $comissao_orion = round($lucro_bruto * 0.10, 2);
+            }
+            $lucro_liquido = round($lucro_ratiado - $comissao - $comissao_orion, 2);
 
             $dados = [
                 'codigo' => $request->codigo,
@@ -53,6 +59,8 @@ class CotaController extends Controller
                 'lucro_bruto' => $lucro_bruto,
                 'lucro_ratiado' => $lucro_ratiado,
                 'comissao' => $comissao,
+                'comissao_orion' => $comissao_orion,
+                'aplica_comissao_orion' => $aplica_comissao_orion,
                 'lucro_liquido' => $lucro_liquido,
                 'situacao' => 'Aberta',
                 'obs' => $request->obs,
@@ -376,7 +384,12 @@ class CotaController extends Controller
             $cota->lucro_bruto = $cota->vl_venda - $cota->vl_compra;
             $cota->lucro_ratiado = round($cota->lucro_bruto / 2, 2);
             $cota->comissao = 2 * round($cota->lucro_ratiado / 100, 2);
-            $cota->lucro_liquido = round($cota->lucro_ratiado - $cota->comissao, 2);
+            
+            $cota->comissao_orion = 0;
+            if ($cota->aplica_comissao_orion == 'Sim') {
+                $cota->comissao_orion = round($cota->lucro_bruto * 0.10, 2);
+            }
+            $cota->lucro_liquido = round($cota->lucro_ratiado - $cota->comissao - $cota->comissao_orion, 2);
             $cota->dias_venda = (strtotime($cota->dt_venda) - strtotime($cota->dt_compra)) / 86400;
             $cota->situacao = 'Finalizada';
             $cota->save();
@@ -535,7 +548,13 @@ class CotaController extends Controller
             $lucro_bruto = valorFormDb($request->vl_venda) - valorFormDb($request->vl_compra);
             $lucro_ratiado = round($lucro_bruto / 2, 2);
             $comissao = 2 * round($lucro_ratiado / 100, 2);
-            $lucro_liquido = round($lucro_ratiado - $comissao, 2);
+
+            $comissao_orion = 0;
+            $aplica_comissao_orion = $request->aplica_comissao_orion ? $request->aplica_comissao_orion : 'Não';
+            if ($aplica_comissao_orion == 'Sim') {
+                $comissao_orion = round($lucro_bruto * 0.10, 2);
+            }
+            $lucro_liquido = round($lucro_ratiado - $comissao - $comissao_orion, 2);
 
             $dados = [
                 'codigo' => $request->codigo,
@@ -550,6 +569,8 @@ class CotaController extends Controller
                 'lucro_bruto' => $lucro_bruto,
                 'lucro_ratiado' => $lucro_ratiado,
                 'comissao' => $comissao,
+                'comissao_orion' => $comissao_orion,
+                'aplica_comissao_orion' => $aplica_comissao_orion,
                 'lucro_liquido' => $lucro_liquido,
                 'situacao' => 'Aberta',
                 'obs' => $request->obs,

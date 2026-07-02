@@ -78,6 +78,10 @@
                 <b>R$ {{ valorDbForm($cota->comissao) }}</b>
             </div>
             <div class="col-md-2 form-group">
+                <label for="vl_venda">Comissão Orion:</label><br>
+                <b>R$ {{ valorDbForm($cota->comissao_orion) }}</b>
+            </div>
+            <div class="col-md-2 form-group">
                 <label for="vl_venda">Lucro Liquido:</label><br>
                 <b>R$ {{ valorDbForm($cota->lucro_liquido) }}</b>
             </div>

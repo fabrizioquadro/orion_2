@@ -22,6 +22,8 @@ class Cota extends Model
         'lucro_bruto',
         'lucro_ratiado',
         'comissao',
+        'comissao_orion',
+        'aplica_comissao_orion',
         'lucro_liquido',
         'situacao',
         'obs',

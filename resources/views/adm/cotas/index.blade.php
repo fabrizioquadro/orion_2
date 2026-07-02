@@ -38,6 +38,7 @@
                         <th>Lucro Bruto</th>
                         <th>Lucro Ratiado</th>
                         <th>Comissão</th>
+                        <th>Comissão Orion</th>
                         <th>Lucro Liquido</th>
                         <th>Carta</th>
                         <th>Parcelas</th>
@@ -70,6 +71,7 @@
                         <td>R$ {{ valorDbForm($cota->lucro_bruto) }}</td>
                         <td>R$ {{ valorDbForm($cota->lucro_ratiado) }}</td>
                         <td>R$ {{ valorDbForm($cota->comissao) }}</td>
+                        <td>R$ {{ valorDbForm($cota->comissao_orion) }}</td>
                         <td>R$ {{ valorDbForm($cota->lucro_liquido) }}</td>
                         <td>R$ {{ valorDbForm($cota->vl_carta) }}</td>
                         <td>{{ $cota->parcelas }}</td>

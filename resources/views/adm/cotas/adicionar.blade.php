@@ -84,7 +84,16 @@
                 </div>
             </div>
             <div class="row gy-4 mt-2">
-                <div class="col-md-12">
+                <div class="col-md-3">
+                    <div class="form-floating form-floating-outline">
+                        <select class="form-select" id="aplica_comissao_orion" name="aplica_comissao_orion">
+                            <option value="Sim">Sim</option>
+                            <option value="Não">Não</option>
+                        </select>
+                        <label for="aplica_comissao_orion">Aplica Comissão Orion?</label>
+                    </div>
+                </div>
+                <div class="col-md-9">
                     <div class="form-floating form-floating-outline mb-4">
                         <textarea class="form-control h-px-100" id="obs" name="obs"></textarea>
                         <label for="obs">Observação:</label>
